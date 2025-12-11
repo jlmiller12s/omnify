@@ -60,6 +60,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import ProjectDetailView from './ProjectDetailView';
 
 // --- Mock Data ---
 
@@ -134,6 +135,134 @@ function SortableItem(props) {
 }
 
 // --- Widget Components ---
+
+const MyApprovalsWidget = ({ dragHandleProps }) => {
+  const [approvals, setApprovals] = useState([]);
+
+  useEffect(() => {
+    // Function to simplify date display
+    const checkApprovals = () => {
+      try {
+        const stored = localStorage.getItem('omnify_pending_approvals');
+        if (stored) {
+          setApprovals(JSON.parse(stored));
+        } else {
+          setApprovals([]);
+        }
+      } catch (e) {
+        console.error("Failed to parse approvals", e);
+      }
+    };
+
+    // Initial check
+    checkApprovals();
+
+    // Poll for changes (simple way to sync across components without context)
+    const interval = setInterval(checkApprovals, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full min-h-[500px]">
+      <div
+        className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center cursor-move drag-handle select-none hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors rounded-t-lg touch-none"
+        {...dragHandleProps}
+      >
+        <div className="flex items-center space-x-2 pointer-events-none">
+          <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">My Approvals</h2>
+          <HelpCircle size={14} className="text-gray-400" />
+          <div className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{approvals.length}</div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <GripHorizontal size={16} className="text-gray-300 dark:text-gray-500" />
+          <MoreHorizontal size={20} className="text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300" />
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Toolbar */}
+        <div className="px-4 py-3 flex justify-end items-center space-x-3 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <button className="px-3 py-1 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs font-medium rounded transition-colors border border-gray-200 dark:border-gray-600">
+            Delegate approvals
+          </button>
+          <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
+          <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-white">
+            <Filter size={14} />
+            <span className="text-sm font-medium">All</span>
+          </div>
+        </div>
+
+        {/* List Content */}
+        <div className="flex-1 overflow-y-auto">
+          {approvals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-full mb-3">
+                <CheckCircle2 size={32} className="text-green-500" />
+              </div>
+              <h3 className="text-gray-900 dark:text-white font-medium mb-1">All caught up!</h3>
+              <p className="text-sm">You have no pending approvals.</p>
+            </div>
+          ) : (
+            approvals.map((item) => (
+              <div key={item.id} className="p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group animate-in slide-in-from-top-2 duration-300">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="relative shrink-0">
+                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-lg overflow-hidden">
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${item.requester.split(' ')[0]}`} alt={item.requester} className="w-full h-full" />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 bg-purple-600 text-white p-0.5 rounded shadow-sm">
+                        <FileText size={10} />
+                      </div>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-sm text-gray-800 dark:text-gray-200 leading-snug">
+                        <span className="font-bold">{item.requester}</span> would like your approval on
+                      </p>
+                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                        {item.project}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{item.date}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <span>Approval Stage</span>
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">{item.stage || 'Approval'}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex rounded-md shadow-sm">
+                        <button className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-bold rounded-l-md transition-colors border-r border-emerald-800">
+                          Approve
+                        </button>
+                        <button className="px-1.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-r-md transition-colors">
+                          <ChevronDown size={14} />
+                        </button>
+                      </div>
+                      <div className="flex rounded-md shadow-sm">
+                        <button className="px-4 py-1.5 bg-red-700 hover:bg-red-800 text-white text-sm font-bold rounded-l-md transition-colors border-r border-red-800">
+                          Reject
+                        </button>
+                        <button className="px-1.5 py-1.5 bg-red-700 hover:bg-red-800 text-white rounded-r-md transition-colors">
+                          <ChevronDown size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="absolute bottom-0 right-0 p-1 cursor-se-resize">
+        <div className="w-0 h-0 border-l-[10px] border-l-transparent border-b-[10px] border-b-gray-400 transform rotate-0 opacity-50"></div>
+      </div>
+    </div>
+  );
+};
 
 const MyProjectsWidget = ({ dragHandleProps, onNavigate }) => {
   const [activeTab, setActiveTab] = useState('projects-on');
@@ -250,7 +379,7 @@ const MyProjectsWidget = ({ dragHandleProps, onNavigate }) => {
         {...dragHandleProps}
       >
         <div className="flex items-center space-x-2 pointer-events-none">
-          <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">My Projects</h2>
+          <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">My Tasks</h2>
           <HelpCircle size={14} className="text-gray-400" />
         </div>
         <div className="flex items-center space-x-2">
@@ -543,7 +672,7 @@ const TodosWidget = ({ dragHandleProps }) => {
 
 // --- Modal Components ---
 
-const NewTaskModal = ({ isOpen, onClose, onCreate }) => {
+const NewTaskModal_DEPRECATED = ({ isOpen, onClose, onCreate }) => {
   const [taskName, setTaskName] = useState('');
   const [description, setDescription] = useState('');
   const [assignments, setAssignments] = useState([]);
@@ -1356,7 +1485,7 @@ const TaskDetailView = ({ task, onBack }) => {
   );
 };
 
-const ProjectDetailView = ({ onBack, project }) => { // Accept project prop
+const ProjectDetailView_DEPRECATED = ({ onBack, project }) => { // Accept project prop
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -2128,7 +2257,7 @@ const ProgramView = ({ onBack }) => {
 export default function App() {
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' | 'timesheets' | 'timesheet-detail' | 'project-detail'
   const [selectedProject, setSelectedProject] = useState(null);
-  const [widgets, setWidgets] = useState(['projects', 'mentions', 'todos']);
+  const [widgets, setWidgets] = useState(['my-approvals', 'projects', 'mentions', 'todos']);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
 
@@ -2161,6 +2290,7 @@ export default function App() {
 
   const renderWidget = (id) => {
     switch (id) {
+      case 'my-approvals': return <MyApprovalsWidget dragHandleProps={{}} />;
       case 'projects':
         return (
           <MyProjectsWidget
@@ -2229,7 +2359,7 @@ export default function App() {
               >
                 <div className="p-4 -mt-14 grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-[1600px] mx-auto pb-10 relative z-10 bg-gray-50/0">
                   {widgets.map((id) => (
-                    <SortableItem key={id} id={id} className={`${id === 'todos' ? 'lg:col-span-1' : ''}`}>
+                    <SortableItem key={id} id={id} className={`${id === 'my-approvals' ? 'lg:col-span-2' : ''} ${id === 'todos' ? 'lg:col-span-1' : ''}`}>
                       {renderWidget(id)}
                     </SortableItem>
                   ))}
